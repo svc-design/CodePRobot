@@ -1,0 +1,25 @@
+# 定义监听路径和触发关键字
+watch_paths:
+  - README.md
+  - issues/
+
+# 定义触发关键字
+trigger_keywords:
+  - generate
+  - implement
+  - auto-code
+
+# OpenAI 设置
+openai:
+  model: gpt-4
+  temperature: 0.7
+  api_key: "${OPENAI_API_KEY}"  # 从环境变量加载 OpenAI API Key
+
+# GitHub 设置
+github:
+  repo: "your-org/your-repo"   # 仓库名
+  token: "${GITHUB_TOKEN}"     # 从环境变量加载 GitHub Token
+  reviewer:
+    - "reviewer1"              # 指定 reviewer
+  base_branch: "main"          # 基准分支
+  auto_merge: false            # 自动合并

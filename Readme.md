@@ -1,5 +1,5 @@
 # 目录结构
-
+```
 codeprobot/
 │   Makefile
 ├── cmd/
@@ -13,4 +13,4 @@ codeprobot/
 ├── .github/
 │   ├── workflows/
 │   │   └── build-release.yml
-``
+```

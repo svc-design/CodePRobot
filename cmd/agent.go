@@ -4,6 +4,9 @@ import (
 	"log"
 
 	"codeprobot/internal/config"
+	"codeprobot/internal/generator"
+	"codeprobot/internal/github"
+	"codeprobot/internal/gitops"
 	"codeprobot/internal/watcher"
 )
 
@@ -21,7 +24,7 @@ func main() {
 	generator := watcher.NewGenerator(cfg.OpenAI.APIKey, cfg.OpenAI.Model, cfg.OpenAI.Temperature)
 
 	// 开始监听
-	log.Println("Starting CodePilot Agent...")
+	log.Println("Starting CodePRobot Agent...")
 	for {
 		events := w.Check() // 检查文件变动
 		for _, event := range events {

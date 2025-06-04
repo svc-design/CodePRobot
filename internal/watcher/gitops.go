@@ -31,7 +31,7 @@ func (g *GitOps) CommitAndPush(branchName, content string) error {
 		return err
 	}
 
-	cmd = exec.Command("git", "commit", "-m", "Generated code by CodePilot")
+	cmd = exec.Command("git", "commit", "-m", "Generated code by CodePRobot")
 	if err := cmd.Run(); err != nil {
 		return err
 	}

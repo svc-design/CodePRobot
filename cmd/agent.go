@@ -1,8 +1,7 @@
-package main
+package cmd
 
 import (
 	"log"
-	"os"
 
 	"codeprobot/internal/config"
 	"codeprobot/internal/generator"
@@ -13,26 +12,26 @@ import (
 
 func main() {
 	// 加载配置
-	config, err := internal.LoadConfig(".github/agent.yaml")
+	cfg, err := config.Load("example/agent.yaml")
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
 	// 初始化模块
-	watcher := internal.NewWatcher(config.WatchPaths)
-	github := internal.NewGitHubClient(config.GitHub.Token, config.GitHub.Repo)
-	gitOps := internal.NewGitOps(config.GitHub.Repo)
-	generator := internal.NewGenerator(config.OpenAI.APIKey, config.OpenAI.Model, config.OpenAI.Temperature)
+	w := watcher.NewWatcher(cfg.WatchPaths)
+	github := watcher.NewGitHubClient(cfg.GitHub.Token, cfg.GitHub.Repo)
+	gitOps := watcher.NewGitOps(cfg.GitHub.Repo)
+	generator := watcher.NewGenerator(cfg.OpenAI.APIKey, cfg.OpenAI.Model, cfg.OpenAI.Temperature)
 
 	// 开始监听
 	log.Println("Starting CodePRobot Agent...")
 	for {
-		events := watcher.Check() // 检查文件变动
+		events := w.Check() // 检查文件变动
 		for _, event := range events {
 			log.Printf("Detected event: %v", event)
 
 			// 触发关键字检查
-			if event.ContainsKeywords(config.TriggerKeywords) {
+			if event.ContainsKeywords(cfg.TriggerKeywords) {
 				log.Println("Trigger keyword detected. Processing...")
 
 				// 调用生成器
@@ -54,7 +53,7 @@ func main() {
 				}
 
 				// 创建 PR
-				if err := github.CreatePullRequest(branchName, config.GitHub.BaseBranch, config.GitHub.Reviewer); err != nil {
+				if err := github.CreatePullRequest(branchName, cfg.GitHub.BaseBranch, cfg.GitHub.Reviewer); err != nil {
 					log.Printf("Error creating PR: %v", err)
 					continue
 				}

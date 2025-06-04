@@ -1,14 +1,15 @@
-package main
+package cmd
 
 import (
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
-
 	"github.com/fsnotify/fsnotify"
-
 	"codeprobot/internal/config"
+	"codeprobot/internal/generator"
+	"codeprobot/internal/github"
+	"codeprobot/internal/gitops"
 	"codeprobot/internal/watcher"
 )
 

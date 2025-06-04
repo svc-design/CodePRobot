@@ -3,62 +3,73 @@ package main
 import (
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 
-    "codeprobot/internal/config"
-    "codeprobot/internal/watcher"
-    "codeprobot/internal/github"
-    "codeprobot/internal/gitops"
-    "codeprobot/internal/generator"
+	"github.com/fsnotify/fsnotify"
+
+	"codeprobot/internal/config"
+	"codeprobot/internal/watcher"
 )
 
 func main() {
-	// 加载配置
-	config, err := internal.LoadConfig(".github/agent.yaml")
+	cfg, err := config.Load(".github/agent.yaml")
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// 初始化模块
-	watcher := internal.NewWatcher(config.WatchPaths)
-	github := internal.NewGitHubClient(config.GitHub.Token, config.GitHub.Repo)
-	gitOps := internal.NewGitOps(config.GitHub.Repo)
-	generator := internal.NewGenerator(config.OpenAI.APIKey, config.OpenAI.Model, config.OpenAI.Temperature)
+	w := watcher.NewWatcher(cfg.WatchPaths)
+	gh := watcher.NewGitHubClient(cfg.GitHub.Token, cfg.GitHub.Repo)
+	gitOps := watcher.NewGitOps(cfg.GitHub.Repo)
+	gen := watcher.NewGenerator(os.Getenv("OPENAI_API_KEY"), cfg.OpenAI.Model, cfg.OpenAI.Temperature)
 
-	// 开始监听
 	log.Println("Starting CodePilot Agent...")
-	for {
-		events := watcher.Check() // 检查文件变动
-		for _, event := range events {
-			log.Printf("Detected event: %v", event)
+	w.Start(func(event fsnotify.Event) {
+		log.Printf("Detected event: %v", event)
 
-			// 触发关键字检查
-			if event.ContainsKeywords(config.TriggerKeywords) {
-				log.Println("Trigger keyword detected. Processing...")
+		if event.Op&(fsnotify.Write|fsnotify.Create) == 0 {
+			return
+		}
 
-				// 调用生成器
-				code, err := generator.Generate(event.Content)
-				if err != nil {
-					log.Printf("Error generating code: %v", err)
-					continue
-				}
+		data, err := os.ReadFile(event.Name)
+		if err != nil {
+			log.Printf("Error reading file: %v", err)
+			return
+		}
 
-				// Git 操作
-				branchName := "auto/" + event.Name
-				if err := gitOps.CreateBranch(branchName); err != nil {
-					log.Printf("Error creating branch: %v", err)
-					continue
-				}
-				if err := gitOps.CommitAndPush(branchName, code); err != nil {
-					log.Printf("Error in git commit or push: %v", err)
-					continue
-				}
+		if !containsKeywords(string(data), cfg.TriggerKeywords) {
+			return
+		}
 
-				// 创建 PR
-				if err := github.CreatePullRequest(branchName, config.GitHub.BaseBranch, config.GitHub.Reviewer); err != nil {
-					log.Printf("Error creating PR: %v", err)
-					continue
-				}
-			}
+		log.Println("Trigger keyword detected. Processing...")
+
+		code, err := gen.Generate(string(data))
+		if err != nil {
+			log.Printf("Error generating code: %v", err)
+			return
+		}
+
+		branchName := "auto/" + filepath.Base(event.Name)
+		if err := gitOps.CreateBranch(branchName); err != nil {
+			log.Printf("Error creating branch: %v", err)
+			return
+		}
+		if err := gitOps.CommitAndPush(branchName, code); err != nil {
+			log.Printf("Error in git commit or push: %v", err)
+			return
+		}
+
+		if err := gh.CreatePullRequest(branchName, "main", cfg.GitHub.Reviewer); err != nil {
+			log.Printf("Error creating PR: %v", err)
+		}
+	})
+}
+
+func containsKeywords(content string, keywords []string) bool {
+	for _, kw := range keywords {
+		if strings.Contains(content, kw) {
+			return true
 		}
 	}
+	return false
 }

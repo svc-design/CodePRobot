@@ -12,6 +12,7 @@ type Config struct {
 		Model       string  `yaml:"model"`
 		Temperature float64 `yaml:"temperature"`
 		APIKey      string  `yaml:"api_key"`
+		APIURL      string  `yaml:"api_url"`
 	} `yaml:"openai"`
 	GitHub struct {
 		Repo       string   `yaml:"repo"`
@@ -20,6 +21,10 @@ type Config struct {
 		BaseBranch string   `yaml:"base_branch"`
 		AutoMerge  bool     `yaml:"auto_merge"`
 	} `yaml:"github"`
+	Proxy struct {
+		HTTP string `yaml:"http"`
+	} `yaml:"proxy"`
+	LoopCount int `yaml:"loop_count"`
 }
 
 func Load(path string) (*Config, error) {

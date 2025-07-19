@@ -5,20 +5,25 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os/exec"
 )
 
 type Generator struct {
 	apiKey      string
 	model       string
 	temperature float64
+	apiURL      string
 }
 
-func NewGenerator(apiKey, model string, temperature float64) *Generator {
-	return &Generator{apiKey: apiKey, model: model, temperature: temperature}
+func NewGenerator(apiKey, model, apiURL string, temperature float64) *Generator {
+	if apiURL == "" {
+		apiURL = "https://api.openai.com/v1/completions"
+	}
+	return &Generator{apiKey: apiKey, model: model, apiURL: apiURL, temperature: temperature}
 }
 
 func (g *Generator) Generate(prompt string) (string, error) {
-	url := "https://api.openai.com/v1/completions"
+	url := g.apiURL
 	body := map[string]interface{}{
 		"model":       g.model,
 		"prompt":      prompt,
@@ -44,4 +49,24 @@ func (g *Generator) Generate(prompt string) (string, error) {
 	var result map[string]interface{}
 	json.NewDecoder(resp.Body).Decode(&result)
 	return result["choices"].([]interface{})[0].(map[string]interface{})["text"].(string), nil
+}
+
+// GenerateWithCodex 调用 codex-cli 生成代码
+func (g *Generator) GenerateWithCodex(prompt string) (string, error) {
+	cmd := exec.Command("npx", "codex-cli", "--prompt", prompt)
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
+
+// GenerateWithClaude 调用 claude-code 包生成代码
+func (g *Generator) GenerateWithClaude(prompt string) (string, error) {
+	cmd := exec.Command("npx", "claude-code", prompt)
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
 }

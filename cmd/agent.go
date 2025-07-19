@@ -1,16 +1,16 @@
 package cmd
 
 import (
-	"log"
-	"os"
-	"path/filepath"
-	"strings"
-	"github.com/fsnotify/fsnotify"
 	"codeprobot/internal/config"
 	"codeprobot/internal/generator"
 	"codeprobot/internal/github"
 	"codeprobot/internal/gitops"
 	"codeprobot/internal/watcher"
+	"github.com/fsnotify/fsnotify"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 func main() {
@@ -22,7 +22,11 @@ func main() {
 	w := watcher.NewWatcher(cfg.WatchPaths)
 	gh := watcher.NewGitHubClient(cfg.GitHub.Token, cfg.GitHub.Repo)
 	gitOps := watcher.NewGitOps(cfg.GitHub.Repo)
-	gen := watcher.NewGenerator(os.Getenv("OPENAI_API_KEY"), cfg.OpenAI.Model, cfg.OpenAI.Temperature)
+	apiURL := cfg.OpenAI.APIURL
+	if cfg.Proxy.HTTP != "" {
+		os.Setenv("HTTP_PROXY", cfg.Proxy.HTTP)
+	}
+	gen := watcher.NewGenerator(os.Getenv("OPENAI_API_KEY"), cfg.OpenAI.Model, apiURL, cfg.OpenAI.Temperature)
 
 	log.Println("Starting CodePilot Agent...")
 	w.Start(func(event fsnotify.Event) {
